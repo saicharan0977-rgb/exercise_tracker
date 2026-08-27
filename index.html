@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dopamine Tracker</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px; /* Expanded for desktop */
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Header & Streak */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideDown 0.5s ease-out;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .day-display {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .streak-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .streak-count {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .streak-count.bump {
+            transform: scale(1.3);
+            color: #fbbf24;
+        }
+
+        .reset-btn {
+            background: transparent;
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Responsive Dashboard Layout */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (min-width: 800px) {
+            .dashboard-layout {
+                /* On desktop, the form takes 350px, the list takes the remaining space */
+                grid-template-columns: 350px 1fr; 
+            }
+        }
+
+        /* Input Form */
+        .add-form {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            animation: slideUp 0.6s ease-out;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .form-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        button.add-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-top: 5px;
+        }
+
+        button.add-btn:active {
+            transform: scale(0.95);
+        }
+        
+        button.add-btn:hover {
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* Exercise List */
+        .list-section {
+            width: 100%;
+        }
+
+        .exercise-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        @media (min-width: 1100px) {
+            /* If the screen is super wide, make the tasks flow into 2 columns */
+            .exercise-list {
+                grid-template-columns: 1fr 1fr; 
+            }
+        }
+
+        .exercise-item {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transform-origin: left;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transition: all 0.3s ease;
+            border-left: 5px solid #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .exercise-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
+        .exercise-item.completed {
+            border-left-color: var(--accent);
+            opacity: 0.7;
+            transform: scale(0.98);
+            box-shadow: none;
+        }
+
+        /* Satisfying Checkbox */
+        .checkbox-wrapper {
+            position: relative;
+        }
+
+        .checkbox-wrapper input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            width: 40px;
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .checkbox-wrapper input:checked ~ .checkmark {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+            animation: checkPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .checkmark:after {
+            content: "✓";
+            color: #000;
+            font-weight: bold;
+            font-size: 24px;
+            display: none;
+        }
+
+        .checkbox-wrapper input:checked ~ .checkmark:after {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+
+        /* Content */
+        .ex-content {
+            flex-grow: 1;
+        }
+
+        .ex-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            transition: color 0.3s;
+        }
+
+        .completed .ex-name {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .ex-notes {
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            background: #334155;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.8rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            margin-top: 3rem;
+            font-size: 1.2rem;
+            font-style: italic;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 2px dashed #334155;
+        }
+
+        /* Animations */
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes checkPop { 0% { transform: scale(1); } 50% { transform: scale(1.3) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <div style="font-size: 1rem; color: var(--text-muted);">Today is</div>
+            <div class="day-display" id="currentDay">Monday</div>
+        </div>
+        <div class="streak-container">
+            <div class="streak-count" id="streakCount">🔥 0</div>
+            <button class="reset-btn" onclick="resetStreak()">Reset Streak</button>
+        </div>
+    </div>
+
+    <div class="dashboard-layout">
+        <div class="add-form">
+            <div class="form-title">Plan an Exercise</div>
+            <input type="text" id="exName" placeholder="What are we lifting? (e.g., Bench Press)" required>
+            <select id="exDay">
+                <option value="Sunday">Sunday</option>
+                <option value="Monday">Monday</option>
+                <option value="Tuesday">Tuesday</option>
+                <option value="Wednesday">Wednesday</option>
+                <option value="Thursday">Thursday</option>
+                <option value="Friday">Friday</option>
+                <option value="Saturday">Saturday</option>
+            </select>
+            <input type="text" id="exNotes" placeholder="Side notes (e.g., Target 150g protein, 3 meals)">
+            <button class="add-btn" onclick="addExercise()">+ ADD TO SCHEDULE</button>
+        </div>
+
+        <div class="list-section">
+            <ul class="exercise-list" id="exerciseList">
+                <!-- Exercises inject here -->
+            </ul>
+            <div id="emptyState" class="empty-state">No exercises scheduled for today. Rest up! 🛌</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = days[new Date().getDay()];
+    const todayDateStr = new Date().toDateString();
+
+    document.getElementById('currentDay').innerText = today;
+    document.getElementById('exDay').value = today;
+
+    let data = JSON.parse(localStorage.getItem('dopamineTracker')) || {
+        exercises: [],
+        streak: 0,
+        lastCompletedDate: null,
+        currentDateString: todayDateStr
+    };
+
+    if (data.currentDateString !== todayDateStr) {
+        data.exercises.forEach(ex => ex.completed = false);
+        
+        if (data.lastCompletedDate) {
+            const lastDate = new Date(data.lastCompletedDate);
+            const currDate = new Date(todayDateStr);
+            const diffTime = Math.abs(currDate - lastDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            if (diffDays > 1) {
+                data.streak = 0; 
+            }
+        }
+        data.currentDateString = todayDateStr;
+        saveData();
+    }
+
+    function saveData() {
+        localStorage.setItem('dopamineTracker', JSON.stringify(data));
+    }
+
+    function updateStreakUI() {
+        const streakEl = document.getElementById('streakCount');
+        streakEl.innerText = `🔥 ${data.streak}`;
+    }
+
+    function addExercise() {
+        const name = document.getElementById('exName').value;
+        const day = document.getElementById('exDay').value;
+        const notes = document.getElementById('exNotes').value;
+
+        if (!name.trim()) return;
+
+        const newEx = {
+            id: Date.now(),
+            name,
+            day,
+            notes,
+            completed: false
+        };
+
+        data.exercises.push(newEx);
+        saveData();
+        
+        document.getElementById('exName').value = '';
+        document.getElementById('exNotes').value = '';
+        
+        renderExercises();
+    }
+
+    function toggleComplete(id) {
+        const ex = data.exercises.find(e => e.id === id);
+        ex.completed = !ex.completed;
+        
+        saveData();
+        renderExercises();
+        checkDailyCompletion(ex.completed);
+    }
+
+    function deleteExercise(id) {
+        data.exercises = data.exercises.filter(e => e.id !== id);
+        saveData();
+        renderExercises();
+    }
+
+    function checkDailyCompletion(justChecked) {
+        const todaysExercises = data.exercises.filter(e => e.day === today);
+        const allDone = todaysExercises.length > 0 && todaysExercises.every(e => e.completed);
+
+        if (allDone && justChecked) {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#10b981', '#fbbf24', '#f8fafc']
+            });
+
+            if (data.lastCompletedDate !== todayDateStr) {
+                data.streak += 1;
+                data.lastCompletedDate = todayDateStr;
+                saveData();
+                
+                const streakEl = document.getElementById('streakCount');
+                streakEl.classList.add('bump');
+                setTimeout(() => streakEl.classList.remove('bump'), 400);
+                updateStreakUI();
+            }
+        }
+    }
+
+    function resetStreak() {
+        if(confirm("Are you sure you want to reset your streak?")) {
+            data.streak = 0;
+            data.lastCompletedDate = null;
+            saveData();
+            updateStreakUI();
+        }
+    }
+
+    function renderExercises() {
+        const list = document.getElementById('exerciseList');
+        list.innerHTML = '';
+        
+        const todaysExercises = data.exercises.filter(e => e.day === today);
+
+        if (todaysExercises.length === 0) {
+            document.getElementById('emptyState').style.display = 'block';
+        } else {
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        todaysExercises.forEach((ex, index) => {
+            const li = document.createElement('li');
+            li.className = `exercise-item ${ex.completed ? 'completed' : ''}`;
+            li.style.animationDelay = `${index * 0.05}s`; 
+
+            li.innerHTML = `
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" ${ex.completed ? 'checked' : ''} onchange="toggleComplete(${ex.id})">
+                    <div class="checkmark"></div>
+                </label>
+                <div class="ex-content">
+                    <div class="ex-name">${ex.name}</div>
+                    ${ex.notes ? `<div class="ex-notes">📝 ${ex.notes}</div>` : ''}
+                </div>
+                <button class="delete-btn" onclick="deleteExercise(${ex.id})">×</button>
+            `;
+            list.appendChild(li);
+        });
+
+        updateStreakUI();
+    }
+
+    renderExercises();
+</script>
+
+</body>
+</html>
